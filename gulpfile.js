@@ -1,5 +1,5 @@
 var gulp = require('gulp');
-var clean = require('gulp-clean');
+var rimraf = require('gulp-rimraf');
 var jshint = require('gulp-jshint');
 var concat = require('gulp-concat');
 var uglify = require('gulp-uglify');
@@ -24,7 +24,7 @@ var paths = {
 // Delete the dist directory
 gulp.task('clean', function() {
   return gulp.src(bases.dist + '*')
-    .pipe(clean());
+    .pipe(rimraf());
 });
 
 // Process scripts and concatenate them into one output file
