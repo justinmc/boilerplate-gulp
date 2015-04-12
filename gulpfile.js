@@ -3,8 +3,10 @@ var clean = require('gulp-clean');
 var jshint = require('gulp-jshint');
 var concat = require('gulp-concat');
 var uglify = require('gulp-uglify');
-var browserify = require('gulp-browserify');
+var browserify = require('browserify');
 var connect = require('gulp-connect');
+var source = require('vinyl-source-stream');
+var buffer = require('vinyl-buffer');
 
 var bases = {
   app: 'app/',
@@ -31,12 +33,16 @@ gulp.task('scripts', ['clean'], function() {
     .pipe(jshint())
     .pipe(jshint.reporter('default'));
 
-  gulp.src(paths.scripts, {cwd: bases.app})
-    .pipe(browserify({
-      debug: '!gulp.env.production'
-    }))
-    //.pipe(concat('app.min.js'))
-    //.pipe(uglify())
+  var b = browserify({
+    entries: './app/js/main.js', 
+    debug: '!gulp.env.production'
+  });
+
+  b.bundle()
+    .pipe(source('main.js'))
+    .pipe(buffer())
+    .pipe(concat('app.min.js'))
+    .pipe(uglify())
     .pipe(gulp.dest(bases.dist + 'js/'))
     .pipe(connect.reload());
 });
