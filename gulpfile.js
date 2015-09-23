@@ -1,12 +1,16 @@
-var gulp = require('gulp');
-var rimraf = require('gulp-rimraf');
-var jshint = require('gulp-jshint');
-var concat = require('gulp-concat');
-var uglify = require('gulp-uglify');
+var _ = require('lodash');
+var babelify = require('babelify');
 var browserify = require('browserify');
-var connect = require('gulp-connect');
-var source = require('vinyl-source-stream');
 var buffer = require('vinyl-buffer');
+var concat = require('gulp-concat');
+var connect = require('gulp-connect');
+var del = require('del');
+var eslint = require('gulp-eslint');
+var gulp = require('gulp');
+var gutil = require('gulp-util');
+var source = require('vinyl-source-stream');
+var uglify = require('gulp-uglify');
+var watchify = require('watchify');
 
 var bases = {
   app: 'app/',
@@ -14,7 +18,7 @@ var bases = {
 };
 
 var paths = {
-  scripts: ['js/**/*.js', '!js/vendor/**/*.js'],
+  scripts: ['js/**/*.js', '!js/vendor/**/*.js', '!js/plugins.js'],
   scriptsVendor: ['js/vendor/**/*.js'],
   styles: ['css/**/*.css'],
   html: ['index.html', '404.html'],
@@ -23,28 +27,42 @@ var paths = {
 
 // Delete the dist directory
 gulp.task('clean', function() {
-  return gulp.src(bases.dist + '*')
-    .pipe(rimraf());
+  return del.sync([
+    bases.dist + '**'
+  ]);
 });
 
 // Process scripts and concatenate them into one output file
 gulp.task('scripts', ['clean'], function() {
   gulp.src(paths.scripts, {cwd: bases.app})
-    .pipe(jshint())
-    .pipe(jshint.reporter('default'));
+    .pipe(eslint())
+    .pipe(eslint.format());
 
-  var b = browserify({
+  var b = watchify(browserify(_.assign({}, watchify.args, {
     entries: './app/js/main.js', 
-    debug: '!gulp.env.production'
-  });
+    debug: true,
+    transform: [babelify],
+    noparse: ['underscore']
+  })));
 
-  b.bundle()
-    .pipe(source('main.js'))
-    .pipe(buffer())
-    .pipe(concat('app.min.js'))
-    .pipe(uglify())
-    .pipe(gulp.dest(bases.dist + 'js/'))
-    .pipe(connect.reload());
+  b.on('update', bundle);
+  b.on('log', gutil.log);
+
+  function bundle() {
+    return b.bundle()
+      .on('error', function(err) {
+        var args = Array.prototype.slice.call(arguments);
+        gutil.log.apply(null, args.map(function(arg) {
+          return arg.message;
+        }));
+        this.emit('end');
+      })
+      .pipe(source('app.min.js'))
+      .pipe(gulp.dest(bases.dist + 'js/'))
+      .pipe(connect.reload());
+  }
+
+  return bundle();
 });
 
 // Copy all other files to dist directly
