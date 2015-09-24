@@ -34,10 +34,6 @@ gulp.task('clean', function() {
 
 // Process scripts and concatenate them into one output file
 gulp.task('scripts', ['clean'], function() {
-  gulp.src(paths.scripts, {cwd: bases.app})
-    .pipe(eslint())
-    .pipe(eslint.format());
-
   var b = watchify(browserify(_.assign({}, watchify.args, {
     entries: './app/js/main.js', 
     debug: true,
@@ -49,6 +45,10 @@ gulp.task('scripts', ['clean'], function() {
   b.on('log', gutil.log);
 
   function bundle() {
+    gulp.src(paths.scripts, {cwd: bases.app})
+      .pipe(eslint())
+      .pipe(eslint.format());
+
     return b.bundle()
       .on('error', function(err) {
         var args = Array.prototype.slice.call(arguments);
